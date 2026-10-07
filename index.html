@@ -61,6 +61,8 @@ nav button.on{color:var(--btn)}
 .sheet{background:var(--bg);width:100%;border-radius:20px 20px 0 0;padding:20px 16px calc(20px + env(safe-area-inset-bottom,0));max-width:520px;margin:0 auto}
 .sheet p{color:var(--hint);margin:4px 0 14px}
 .hide{display:none}
+.link{border:0;background:none;color:var(--btn);font:inherit;font-size:14px;padding:0;margin-top:4px;text-align:left}
+.hint{color:var(--hint);font-size:13px;margin:-4px 0 8px}
 .item{cursor:pointer}
 .item:active{opacity:.6}
 .acts{display:flex;gap:8px}
@@ -74,6 +76,7 @@ nav button.on{color:var(--btn)}
  <section id="v-home">
   <h1 id="mname"></h1>
   <div class="bal" id="bal"></div>
+  <button class="link" id="editOpen"></button>
   <div class="row">
    <div class="box"><small>Доходы</small><b class="inc" id="sInc"></b></div>
    <div class="box"><small>Расходы</small><b class="exp" id="sExp"></b></div>
@@ -121,6 +124,7 @@ nav button.on{color:var(--btn)}
 
  <section id="v-stat" class="hide">
   <h2 style="margin-top:0">По месяцам</h2>
+  <p class="hint">Нажмите на месяц, чтобы изменить баланс на начало месяца.</p>
   <div class="mrow h"><span>Месяц</span><span>Доход</span><span>Расход</span><span>Прибыль</span></div>
   <div id="months"></div>
   <h2>Расходы по категориям, <span id="cmName"></span></h2>
@@ -137,9 +141,9 @@ nav button.on{color:var(--btn)}
 
 <div class="modal" id="modal"><div class="sheet">
  <h2 style="margin:0" id="mTitle"></h2>
- <p>Введите, сколько денег у вас сейчас. Дальше баланс считается от этой суммы.</p>
+ <p>Сколько денег было на 1-е число. Дальше баланс месяца считается от этой суммы.</p>
  <input id="openAmt" type="number" inputmode="decimal" placeholder="Баланс, ₽">
- <button class="main" id="openSave">Сохранить баланс</button>
+ <div class="acts"><button class="sec hide" id="openCancel">Отмена</button><button class="main" id="openSave">Сохранить баланс</button></div>
 </div></div>
 
 <div class="modal" id="editModal"><div class="sheet">
@@ -265,20 +269,31 @@ function prevKey(k){
 }
 
 /* ---------- Баланс на начало месяца ---------- */
-function checkOpening(){
-  const k = mkey(today());
-  if (data.open[k] != null) return;
-  const [y,m] = k.split('-').map(Number);
+let openKey = null;
+function showOpening(k, canCancel){
+  openKey = k;
+  const [y, m] = k.split('-').map(Number);
   $('mTitle').textContent = 'Баланс на начало: ' + MONTHS[m-1].toLowerCase() + ' ' + y;
-  const prev = balanceAt(prevKey(k));
-  $('openAmt').value = prev != null ? prev : '';
+  const cur = data.open[k] != null ? data.open[k] : balanceAt(prevKey(k));
+  $('openAmt').value = cur != null ? cur : '';
+  $('openCancel').classList.toggle('hide', !canCancel);
   $('modal').classList.add('show');
 }
+function checkOpening(){
+  const k = mkey(today());
+  if (data.open[k] == null) showOpening(k, false);
+}
+$('openCancel').onclick = () => $('modal').classList.remove('show');
 $('openSave').onclick = () => {
   const v = parseFloat($('openAmt').value);
   if (isNaN(v)) { $('openAmt').focus(); return; }
-  data.open[mkey(today())] = v;
+  data.open[openKey] = v;
   save(); $('modal').classList.remove('show'); render();
+};
+$('editOpen').onclick = () => showOpening(mkey(today()), true);
+$('months').onclick = e => {
+  const r = e.target.closest('.mrow');
+  if (r && r.dataset.k) showOpening(r.dataset.k, true);
 };
 
 /* ---------- Добавление записи ---------- */
@@ -374,6 +389,7 @@ function renderHome(){
   $('mname').textContent = 'Баланс, ' + MONTHS[m-1].toLowerCase() + ' ' + y;
   const b = balanceAt(k);
   $('bal').textContent = b == null ? '—' : fmt(b);
+  $('editOpen').textContent = data.open[k] != null ? 'Баланс на 1-е число: ' + fmt(data.open[k]) + ' · изменить' : 'Указать баланс на начало месяца';
   const s = sums(monthTx(k));
   $('sInc').textContent = fmt(s.i); $('sExp').textContent = fmt(s.e); setProf('sProf', s.i - s.e);
   const last = [...data.tx].sort((a,b) => b.d.localeCompare(a.d) || b.id - a.id).slice(0,5);
@@ -418,7 +434,7 @@ function renderStat(){
   $('months').innerHTML = keys.map(k => {
     const [y,m] = k.split('-').map(Number), s = sums(monthTx(k)), b = balanceAt(k);
     const p = s.i - s.e;
-    return `<div class="mrow"><span>${MONTHS[m-1].slice(0,3)} ${String(y).slice(2)}<small>остаток ${b == null ? '—' : fmt(b)}</small></span>
+    return `<div class="mrow" data-k="${k}" style="cursor:pointer"><span>${MONTHS[m-1].slice(0,3)} ${String(y).slice(2)}<small>остаток ${b == null ? '—' : fmt(b)}</small></span>
     <span class="inc">${fmt(s.i)}</span><span class="exp">${fmt(s.e)}</span><span class="${p < 0 ? 'exp' : p > 0 ? 'inc' : ''}">${p > 0 ? '+' : p < 0 ? '−' : ''}${fmt(Math.abs(p))}</span></div>`;
   }).join('');
   const k = mkey(today()), m = +k.split('-')[1];
