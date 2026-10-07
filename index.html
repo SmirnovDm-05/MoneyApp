@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Мои деньги</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root{
+  --bg:var(--tg-theme-bg-color,#fff);--text:var(--tg-theme-text-color,#1b1b1b);
+  --hint:var(--tg-theme-hint-color,#7a7a80);--card:var(--tg-theme-secondary-bg-color,#f2f2f5);
+  --btn:var(--tg-theme-button-color,#2b7de9);--btnt:var(--tg-theme-button-text-color,#fff);
+  --inc:#1f9d63;--exp:#e0533d;
+}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);
+  padding:env(safe-area-inset-top,0) 0 calc(64px + env(safe-area-inset-bottom,0));-webkit-tap-highlight-color:transparent}
+main{padding:16px;max-width:520px;margin:0 auto}
+h1{font-size:15px;font-weight:500;color:var(--hint);margin-bottom:2px}
+.bal{font-size:40px;font-weight:700;letter-spacing:-1px;font-variant-numeric:tabular-nums}
+.row{display:flex;gap:10px;margin:14px 0}
+.box{flex:1;background:var(--card);border-radius:14px;padding:12px}
+.box small{color:var(--hint);display:block;font-size:13px}
+.box b{font-size:20px;font-variant-numeric:tabular-nums}
+.inc{color:var(--inc)}.exp{color:var(--exp)}
+.pbox{background:var(--card);border-radius:14px;padding:12px;margin:-4px 0 14px;display:flex;justify-content:space-between;align-items:baseline}
+.pbox small{color:var(--hint);font-size:13px}
+.pbox b{font-size:20px;font-variant-numeric:tabular-nums}
+.mrow small{display:block;color:var(--hint);font-size:11px}
+.seg{display:flex;background:var(--card);border-radius:12px;padding:3px;margin-bottom:12px}
+.seg button{flex:1;border:0;background:none;color:var(--text);padding:9px;border-radius:10px;font:inherit;font-weight:500}
+.seg button.on{background:var(--bg);box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.seg button.on.i{color:var(--inc)}.seg button.on.e{color:var(--exp)}
+input{width:100%;font:inherit;color:var(--text);background:var(--card);border:2px solid transparent;border-radius:12px;padding:12px;margin-bottom:10px}
+input:focus{outline:none;border-color:var(--btn)}
+input[type=number]{font-size:24px;font-weight:600}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:-2px 0 12px}
+.chip{border:0;background:var(--card);color:var(--text);padding:6px 12px;border-radius:99px;font:inherit;font-size:14px}
+.main{width:100%;border:0;background:var(--btn);color:var(--btnt);font:inherit;font-weight:600;padding:14px;border-radius:12px}
+.main:active{opacity:.8}
+h2{font-size:17px;margin:20px 0 8px}
+.item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--card)}
+.item .n{flex:1;min-width:0}.item .n span{display:block;color:var(--hint);font-size:13px}
+.item .a{font-weight:600;font-variant-numeric:tabular-nums}
+.del{border:0;background:none;color:var(--hint);font-size:20px;padding:4px 8px}
+.day{color:var(--hint);font-size:13px;margin:16px 0 0;display:flex;justify-content:space-between}
+.empty{color:var(--hint);text-align:center;padding:28px 0}
+.dates{display:flex;gap:8px}
+.dates label{flex:1;font-size:13px;color:var(--hint)}
+.dates input{margin:2px 0 8px}
+.mrow{display:grid;grid-template-columns:1.1fr 1fr 1fr 1fr;gap:6px;padding:10px 0;border-bottom:1px solid var(--card);font-size:14px;font-variant-numeric:tabular-nums}
+.mrow.h{color:var(--hint);font-size:12px}
+.bar{height:6px;border-radius:3px;background:var(--exp);margin-top:4px}
+nav{position:fixed;bottom:0;left:0;right:0;display:flex;background:var(--bg);border-top:1px solid var(--card);padding-bottom:env(safe-area-inset-bottom,0)}
+nav button{flex:1;border:0;background:none;color:var(--hint);padding:14px 0;font:inherit;font-size:14px;font-weight:500}
+nav button.on{color:var(--btn)}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;align-items:flex-end;z-index:9}
+.modal.show{display:flex}
+#cfModal{z-index:20}
+.sheet{background:var(--bg);width:100%;border-radius:20px 20px 0 0;padding:20px 16px calc(20px + env(safe-area-inset-bottom,0));max-width:520px;margin:0 auto}
+.sheet p{color:var(--hint);margin:4px 0 14px}
+.hide{display:none}
+.item{cursor:pointer}
+.item:active{opacity:.6}
+.acts{display:flex;gap:8px}
+.acts button{flex:1}
+.sec{border:0;background:var(--card);color:var(--text);font:inherit;font-weight:600;padding:14px;border-radius:12px}
+.sec.danger{color:var(--exp)}
+</style>
+</head>
+<body>
+<main>
+ <section id="v-home">
+  <h1 id="mname"></h1>
+  <div class="bal" id="bal"></div>
+  <div class="row">
+   <div class="box"><small>Доходы</small><b class="inc" id="sInc"></b></div>
+   <div class="box"><small>Расходы</small><b class="exp" id="sExp"></b></div>
+  </div>
+  <div class="pbox"><small>Прибыль за месяц (доходы − расходы)</small><b id="sProf"></b></div>
+  <div class="seg" id="type"><button class="e on" data-t="e">Расход</button><button class="i" data-t="i">Доход</button></div>
+  <input id="amt" type="number" inputmode="decimal" placeholder="Сумма, ₽">
+  <input id="cat" placeholder="Категория, например: кафе" autocomplete="off">
+  <div class="chips" id="chips"></div>
+  <input id="date" type="date">
+  <button class="main" id="save">Добавить</button>
+  <h2>Последние записи</h2>
+  <div id="recent"></div>
+ </section>
+
+ <section id="v-hist" class="hide">
+  <div class="dates">
+   <label>С<input type="date" id="from"></label>
+   <label>По<input type="date" id="to"></label>
+  </div>
+  <div class="chips">
+   <button class="chip" data-r="day">Сегодня</button>
+   <button class="chip" data-r="week">7 дней</button>
+   <button class="chip" data-r="month">Этот месяц</button>
+  </div>
+  <div class="row">
+   <div class="box"><small>Доходы</small><b class="inc" id="hInc"></b></div>
+   <div class="box"><small>Расходы</small><b class="exp" id="hExp"></b></div>
+  </div>
+  <div class="pbox"><small>Прибыль за период</small><b id="hProf"></b></div>
+  <div id="hlist"></div>
+ </section>
+
+ <section id="v-stat" class="hide">
+  <h2 style="margin-top:0">По месяцам</h2>
+  <div class="mrow h"><span>Месяц</span><span>Доход</span><span>Расход</span><span>Прибыль</span></div>
+  <div id="months"></div>
+  <h2>Расходы по категориям, <span id="cmName"></span></h2>
+  <div id="cats"></div>
+ </section>
+</main>
+
+<nav id="nav">
+ <button class="on" data-v="home">Главная</button>
+ <button data-v="hist">История</button>
+ <button data-v="stat">Статистика</button>
+</nav>
+
+<div class="modal" id="modal"><div class="sheet">
+ <h2 style="margin:0" id="mTitle"></h2>
+ <p>Введите, сколько денег у вас сейчас. Дальше баланс считается от этой суммы.</p>
+ <input id="openAmt" type="number" inputmode="decimal" placeholder="Баланс, ₽">
+ <button class="main" id="openSave">Сохранить баланс</button>
+</div></div>
+
+<div class="modal" id="editModal"><div class="sheet">
+ <h2 style="margin:0 0 12px">Редактировать запись</h2>
+ <div class="seg" id="eType"><button class="e" data-t="e">Расход</button><button class="i" data-t="i">Доход</button></div>
+ <input id="eAmt" type="number" inputmode="decimal" placeholder="Сумма, ₽">
+ <input id="eCat" placeholder="Категория" autocomplete="off">
+ <input id="eDate" type="date">
+ <div class="acts">
+  <button class="sec danger" id="eDel">Удалить</button>
+  <button class="sec" id="eCancel">Отмена</button>
+  <button class="main" id="eSave">Сохранить</button>
+ </div>
+</div></div>
+
+<div class="modal" id="cfModal"><div class="sheet">
+ <h2 style="margin:0 0 14px">Удалить запись?</h2>
+ <div class="acts">
+  <button class="sec" id="cfNo">Отмена</button>
+  <button class="main" id="cfYes" style="background:var(--exp);color:#fff">Удалить</button>
+ </div>
+</div></div>
+
+<script>
+const tg = window.Telegram && Telegram.WebApp;
+if (tg) { tg.ready(); tg.expand(); }
+
+const MONTHS = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+const MON_IN = ['январе','феврале','марте','апреле','мае','июне','июле','августе','сентябре','октябре','ноябре','декабре'];
+const $ = id => document.getElementById(id);
+const pad = n => String(n).padStart(2,'0');
+const iso = d => d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const today = () => iso(new Date());
+const mkey = s => s.slice(0,7);
+const fmt = n => (Math.round(n*100)/100).toLocaleString('ru-RU')+' ₽';
+function setProf(id, v){
+  const el = $(id);
+  el.textContent = (v > 0 ? '+' : v < 0 ? '−' : '') + fmt(Math.abs(v));
+  el.className = v < 0 ? 'exp' : v > 0 ? 'inc' : '';
+}
+const esc = s => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+let data = { tx: [], open: {} };
+let type = 'e';
+
+/* ---------- Хранилище: Telegram CloudStorage (синхронизация между устройствами), запасной вариант localStorage ----------
+   В CloudStorage одно значение не больше 4096 символов, поэтому данные режутся на части по ~3500 символов. */
+const CHUNK = 3500;
+const cloud = (tg && tg.CloudStorage && tg.isVersionAtLeast && tg.isVersionAtLeast('6.9')) ? tg.CloudStorage : null;
+let savedChunks = 0;
+
+function parseData(raw){
+  try { if (raw) { const d = JSON.parse(raw); if (d && d.tx && d.open) data = d; } } catch(e){}
+}
+function load(cb){
+  if (!cloud) {
+    let v = null; try { v = localStorage.getItem('money'); } catch(e){}
+    parseData(v); return cb();
+  }
+  cloud.getItem('mn', (err, n) => {
+    n = parseInt(n) || 0;
+    if (!n) { // старый формат: всё одним ключом
+      return cloud.getItem('money', (e2, v) => { if (!e2) parseData(v); cb(); });
+    }
+    savedChunks = n;
+    const keys = Array.from({ length: n }, (_, i) => 'mc' + i);
+    cloud.getItems(keys, (e3, res) => {
+      if (!e3 && res) parseData(keys.map(k => res[k] || '').join(''));
+      cb();
+    });
+  });
+}
+function save(){
+  const raw = JSON.stringify(data);
+  if (!cloud) { try { localStorage.setItem('money', raw); } catch(e){} return; }
+  const parts = [];
+  for (let i = 0; i < raw.length; ) {
+    let end = Math.min(i + CHUNK, raw.length);
+    const c = raw.charCodeAt(end - 1);
+    if (end < raw.length && c >= 0xD800 && c <= 0xDBFF) end--; // не разрезаем эмодзи
+    parts.push(raw.slice(i, end)); i = end;
+  }
+  const items = { mn: String(parts.length) };
+  parts.forEach((p, i) => items['mc' + i] = p);
+  cloud.setItems(items, err => {
+    if (err) { if (tg.showAlert) tg.showAlert('Не удалось сохранить данные. Проверьте интернет и повторите.'); return; }
+    if (savedChunks > parts.length) {
+      cloud.removeItems(Array.from({ length: savedChunks - parts.length }, (_, i) => 'mc' + (parts.length + i)));
+    }
+    if (!savedChunks) cloud.removeItem('money'); // удаляем старый формат
+    savedChunks = parts.length;
+  });
+}
+
+/* ---------- Расчёты ---------- */
+function sums(list){
+  let i = 0, e = 0;
+  list.forEach(t => t.t === 'i' ? i += t.a : e += t.a);
+  return { i, e };
+}
+function monthTx(k){ return data.tx.filter(t => mkey(t.d) === k); }
+function balanceAt(k){
+  if (data.open[k] == null) return null;
+  const s = sums(monthTx(k));
+  return data.open[k] + s.i - s.e;
+}
+function prevKey(k){
+  let [y,m] = k.split('-').map(Number);
+  m--; if (m === 0) { m = 12; y--; }
+  return y+'-'+pad(m);
+}
+
+/* ---------- Баланс на начало месяца ---------- */
+function checkOpening(){
+  const k = mkey(today());
+  if (data.open[k] != null) return;
+  const [y,m] = k.split('-').map(Number);
+  $('mTitle').textContent = 'Баланс на начало: ' + MONTHS[m-1].toLowerCase() + ' ' + y;
+  const prev = balanceAt(prevKey(k));
+  $('openAmt').value = prev != null ? prev : '';
+  $('modal').classList.add('show');
+}
+$('openSave').onclick = () => {
+  const v = parseFloat($('openAmt').value);
+  if (isNaN(v)) { $('openAmt').focus(); return; }
+  data.open[mkey(today())] = v;
+  save(); $('modal').classList.remove('show'); render();
+};
+
+/* ---------- Добавление записи ---------- */
+$('type').onclick = e => {
+  const b = e.target.closest('button'); if (!b) return;
+  type = b.dataset.t;
+  [...$('type').children].forEach(x => x.classList.toggle('on', x === b));
+  renderChips();
+};
+$('save').onclick = () => {
+  const a = parseFloat($('amt').value);
+  const c = $('cat').value.trim();
+  if (!(a > 0)) { $('amt').focus(); return; }
+  if (!c) { $('cat').focus(); return; }
+  const d = $('date').value || today();
+  data.tx.push({ id: Date.now(), t: type, a, c, d });
+  save();
+  $('amt').value = ''; $('cat').value = ''; $('date').value = today();
+  if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+  render();
+};
+function renderChips(){
+  const count = {};
+  data.tx.filter(t => t.t === type).forEach(t => count[t.c] = (count[t.c]||0) + 1);
+  const top = Object.keys(count).sort((a,b) => count[b]-count[a]).slice(0,8);
+  $('chips').innerHTML = top.map(c => `<button class="chip">${esc(c)}</button>`).join('');
+}
+$('chips').onclick = e => { if (e.target.classList.contains('chip')) $('cat').value = e.target.textContent; };
+
+/* ---------- Списки ---------- */
+function itemHTML(t){
+  const sign = t.t === 'i' ? '+' : '−';
+  return `<div class="item" data-id="${t.id}"><div class="n">${esc(t.c)}<span>${t.d.split('-').reverse().join('.')}</span></div>
+  <div class="a ${t.t === 'i' ? 'inc' : 'exp'}">${sign}${fmt(t.a)}</div>
+  <button class="del" data-id="${t.id}" aria-label="Удалить">×</button></div>`;
+}
+let cfCb = null;
+function askDelete(cb){ cfCb = cb; $('cfModal').classList.add('show'); }
+$('cfNo').onclick = () => { cfCb = null; $('cfModal').classList.remove('show'); };
+$('cfYes').onclick = () => {
+  const cb = cfCb; cfCb = null;
+  $('cfModal').classList.remove('show');
+  if (cb) cb();
+};
+function deleteTx(id){
+  data.tx = data.tx.filter(t => t.id !== id);
+  save(); render();
+}
+function listClick(e){
+  const del = e.target.closest('.del');
+  if (del) {
+    askDelete(() => deleteTx(+del.dataset.id));
+    return;
+  }
+  const row = e.target.closest('.item');
+  if (row) openEdit(+row.dataset.id);
+}
+$('recent').onclick = listClick;
+$('hlist').onclick = listClick;
+
+/* ---------- Редактирование ---------- */
+let editId = null, editType = 'e';
+function setEditType(t){
+  editType = t;
+  [...$('eType').children].forEach(b => b.classList.toggle('on', b.dataset.t === t));
+}
+function openEdit(id){
+  const t = data.tx.find(x => x.id === id); if (!t) return;
+  editId = id;
+  setEditType(t.t);
+  $('eAmt').value = t.a; $('eCat').value = t.c; $('eDate').value = t.d;
+  $('editModal').classList.add('show');
+}
+function closeEdit(){ $('editModal').classList.remove('show'); editId = null; }
+$('eType').onclick = e => { const b = e.target.closest('button'); if (b) setEditType(b.dataset.t); };
+$('eCancel').onclick = closeEdit;
+$('editModal').onclick = e => { if (e.target === $('editModal')) closeEdit(); };
+$('eSave').onclick = () => {
+  const a = parseFloat($('eAmt').value), c = $('eCat').value.trim();
+  if (!(a > 0)) { $('eAmt').focus(); return; }
+  if (!c) { $('eCat').focus(); return; }
+  const t = data.tx.find(x => x.id === editId); if (!t) return closeEdit();
+  t.t = editType; t.a = a; t.c = c; t.d = $('eDate').value || t.d;
+  save(); closeEdit(); render();
+};
+$('eDel').onclick = () => {
+  const id = editId;
+  askDelete(() => { deleteTx(id); closeEdit(); });
+};
+
+function renderHome(){
+  const k = mkey(today()), [y,m] = k.split('-').map(Number);
+  $('mname').textContent = 'Баланс, ' + MONTHS[m-1].toLowerCase() + ' ' + y;
+  const b = balanceAt(k);
+  $('bal').textContent = b == null ? '—' : fmt(b);
+  const s = sums(monthTx(k));
+  $('sInc').textContent = fmt(s.i); $('sExp').textContent = fmt(s.e); setProf('sProf', s.i - s.e);
+  const last = [...data.tx].sort((a,b) => b.d.localeCompare(a.d) || b.id - a.id).slice(0,5);
+  $('recent').innerHTML = last.length ? last.map(itemHTML).join('') : '<div class="empty">Пока нет записей. Добавьте первую выше.</div>';
+  renderChips();
+}
+
+function renderHist(){
+  const f = $('from').value, t = $('to').value;
+  const list = data.tx.filter(x => (!f || x.d >= f) && (!t || x.d <= t))
+    .sort((a,b) => b.d.localeCompare(a.d) || b.id - a.id);
+  const s = sums(list);
+  $('hInc').textContent = fmt(s.i); $('hExp').textContent = fmt(s.e); setProf('hProf', s.i - s.e);
+  if (!list.length) { $('hlist').innerHTML = '<div class="empty">За этот период записей нет</div>'; return; }
+  let html = '', cur = '';
+  list.forEach(x => {
+    if (x.d !== cur) {
+      cur = x.d;
+      const ds = sums(list.filter(y => y.d === cur));
+      html += `<div class="day"><span>${cur.split('-').reverse().join('.')}</span><span>${ds.i ? '+'+fmt(ds.i)+' ' : ''}${ds.e ? '−'+fmt(ds.e) : ''}</span></div>`;
+    }
+    html += itemHTML(x);
+  });
+  $('hlist').innerHTML = html;
+}
+$('from').onchange = $('to').onchange = renderHist;
+document.querySelector('#v-hist .chips').onclick = e => {
+  const r = e.target.dataset.r; if (!r) return;
+  const now = new Date();
+  $('to').value = iso(now);
+  if (r === 'day') $('from').value = iso(now);
+  if (r === 'week') { const d = new Date(now); d.setDate(d.getDate()-6); $('from').value = iso(d); }
+  if (r === 'month') $('from').value = iso(new Date(now.getFullYear(), now.getMonth(), 1));
+  renderHist();
+};
+
+function renderStat(){
+  const keys = [...new Set([...data.tx.map(t => mkey(t.d)), ...Object.keys(data.open), mkey(today())])].sort().reverse();
+  $('months').innerHTML = keys.map(k => {
+    const [y,m] = k.split('-').map(Number), s = sums(monthTx(k)), b = balanceAt(k);
+    const p = s.i - s.e;
+    return `<div class="mrow"><span>${MONTHS[m-1].slice(0,3)} ${String(y).slice(2)}<small>остаток ${b == null ? '—' : fmt(b)}</small></span>
+    <span class="inc">${fmt(s.i)}</span><span class="exp">${fmt(s.e)}</span><span class="${p < 0 ? 'exp' : p > 0 ? 'inc' : ''}">${p > 0 ? '+' : p < 0 ? '−' : ''}${fmt(Math.abs(p))}</span></div>`;
+  }).join('');
+  const k = mkey(today()), m = +k.split('-')[1];
+  $('cmName').textContent = 'в ' + MON_IN[m-1];
+  const by = {};
+  monthTx(k).filter(t => t.t === 'e').forEach(t => by[t.c] = (by[t.c]||0) + t.a);
+  const names = Object.keys(by).sort((a,b) => by[b]-by[a]);
+  const max = names.length ? by[names[0]] : 1;
+  $('cats').innerHTML = names.length ? names.map(n =>
+    `<div style="padding:8px 0"><div style="display:flex;justify-content:space-between"><span>${esc(n)}</span><b>${fmt(by[n])}</b></div>
+    <div class="bar" style="width:${Math.max(4, by[n]/max*100)}%"></div></div>`).join('')
+    : '<div class="empty">В этом месяце расходов пока нет</div>';
+}
+
+/* ---------- Навигация ---------- */
+$('nav').onclick = e => {
+  const b = e.target.closest('button'); if (!b) return;
+  [...$('nav').children].forEach(x => x.classList.toggle('on', x === b));
+  ['home','hist','stat'].forEach(v => $('v-'+v).classList.toggle('hide', v !== b.dataset.v));
+  render();
+};
+function render(){ renderHome(); renderHist(); renderStat(); }
+
+/* ---------- Старт ---------- */
+$('date').value = today();
+$('from').value = iso(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
+$('to').value = today();
+load(() => { render(); checkOpening(); });
+// Подтягиваем изменения, сделанные с другого устройства, когда приложение снова открывают
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && cloud) load(() => { render(); checkOpening(); });
+});
+</script>
+</body>
+</html>
