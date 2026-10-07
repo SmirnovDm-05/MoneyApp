@@ -34,7 +34,7 @@ h1{font-size:15px;font-weight:500;color:var(--hint);margin-bottom:2px}
 .seg button.on.i{color:var(--inc)}.seg button.on.e{color:var(--exp)}
 input{width:100%;font:inherit;color:var(--text);background:var(--card);border:2px solid transparent;border-radius:12px;padding:12px;margin-bottom:10px}
 input:focus{outline:none;border-color:var(--btn)}
-input[type=number]{font-size:24px;font-weight:600}
+input[inputmode=decimal]{font-size:24px;font-weight:600}
 .chips{display:flex;flex-wrap:wrap;gap:6px;margin:-2px 0 12px}
 .chip{border:0;background:var(--card);color:var(--text);padding:6px 12px;border-radius:99px;font:inherit;font-size:14px}
 .main{width:100%;border:0;background:var(--btn);color:var(--btnt);font:inherit;font-weight:600;padding:14px;border-radius:12px}
@@ -84,7 +84,7 @@ nav button.on{color:var(--btn)}
   <div class="pbox"><small>Прибыль за месяц (доходы − расходы)</small><b id="sProf"></b></div>
   <div class="pbox" id="dbox"><small>Долги</small><b class="exp" id="sDebt"></b></div>
   <div class="seg" id="type"><button class="e on" data-t="e">Расход</button><button class="i" data-t="i">Доход</button></div>
-  <input id="amt" type="number" inputmode="decimal" placeholder="Сумма, ₽">
+  <input id="amt" type="text" inputmode="decimal" placeholder="Сумма, ₽">
   <input id="cat" placeholder="Категория, например: кафе" autocomplete="off">
   <div class="chips" id="chips"></div>
   <input id="date" type="date">
@@ -116,7 +116,7 @@ nav button.on{color:var(--btn)}
   <div class="bal" id="dTotal"></div>
   <h2>Добавить долг</h2>
   <input id="dName" placeholder="Кому должны, например: Сбербанк" autocomplete="off">
-  <input id="dAmt" type="number" inputmode="decimal" placeholder="Сумма, ₽">
+  <input id="dAmt" type="text" inputmode="decimal" placeholder="Сумма, ₽">
   <button class="main" id="dAdd">Добавить долг</button>
   <h2>Мои долги</h2>
   <div id="dList"></div>
@@ -142,14 +142,14 @@ nav button.on{color:var(--btn)}
 <div class="modal" id="modal"><div class="sheet">
  <h2 style="margin:0" id="mTitle"></h2>
  <p>Сколько денег было на 1-е число. Дальше баланс месяца считается от этой суммы.</p>
- <input id="openAmt" type="number" inputmode="decimal" placeholder="Баланс, ₽">
+ <input id="openAmt" type="text" inputmode="decimal" placeholder="Баланс, ₽">
  <div class="acts"><button class="sec hide" id="openCancel">Отмена</button><button class="main" id="openSave">Сохранить баланс</button></div>
 </div></div>
 
 <div class="modal" id="editModal"><div class="sheet">
  <h2 style="margin:0 0 12px">Редактировать запись</h2>
  <div class="seg" id="eType"><button class="e" data-t="e">Расход</button><button class="i" data-t="i">Доход</button></div>
- <input id="eAmt" type="number" inputmode="decimal" placeholder="Сумма, ₽">
+ <input id="eAmt" type="text" inputmode="decimal" placeholder="Сумма, ₽">
  <input id="eCat" placeholder="Категория" autocomplete="off">
  <input id="eDate" type="date">
  <div class="acts">
@@ -162,7 +162,7 @@ nav button.on{color:var(--btn)}
 <div class="modal" id="deModal"><div class="sheet">
  <h2 style="margin:0 0 12px">Редактировать долг</h2>
  <input id="deName" placeholder="Кому должны" autocomplete="off">
- <input id="deAmt" type="number" inputmode="decimal" placeholder="Сумма, ₽">
+ <input id="deAmt" type="text" inputmode="decimal" placeholder="Сумма, ₽">
  <div class="acts">
   <button class="sec danger" id="deDel">Удалить</button>
   <button class="sec" id="deCancel">Отмена</button>
@@ -185,6 +185,7 @@ if (tg) { tg.ready(); tg.expand(); }
 const MONTHS = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
 const MON_IN = ['январе','феврале','марте','апреле','мае','июне','июле','августе','сентябре','октябре','ноябре','декабре'];
 const $ = id => document.getElementById(id);
+const num = v => parseFloat(String(v).replace(/\s/g, '').replace(',', '.'));
 const pad = n => String(n).padStart(2,'0');
 const iso = d => d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
 const today = () => iso(new Date());
@@ -240,14 +241,24 @@ function save(){
   }
   const items = { mn: String(parts.length) };
   parts.forEach((p, i) => items['mc' + i] = p);
-  cloud.setItems(items, err => {
-    if (err) { if (tg.showAlert) tg.showAlert('Не удалось сохранить данные. Проверьте интернет и повторите.'); return; }
-    if (savedChunks > parts.length) {
-      cloud.removeItems(Array.from({ length: savedChunks - parts.length }, (_, i) => 'mc' + (parts.length + i)));
-    }
-    if (!savedChunks) cloud.removeItem('money'); // удаляем старый формат
-    savedChunks = parts.length;
-  });
+  try { localStorage.setItem('money', raw); } catch(e){} // резервная копия на устройстве
+  try {
+    const entries = Object.entries(items);
+    let pending = entries.length, failed = false;
+    const finish = () => {
+      if (failed) { if (tg.showAlert) tg.showAlert('Не удалось сохранить данные в облаке Telegram. Проверьте интернет и повторите.'); return; }
+      if (savedChunks > parts.length) {
+        cloud.removeItems(Array.from({ length: savedChunks - parts.length }, (_, i) => 'mc' + (parts.length + i)));
+      }
+      savedChunks = parts.length;
+    };
+    entries.forEach(([k, v]) => cloud.setItem(k, v, err => {
+      if (err) failed = true;
+      if (--pending === 0) finish();
+    }));
+  } catch(e) {
+    if (tg.showAlert) tg.showAlert('Ошибка сохранения: ' + e.message);
+  }
 }
 
 /* ---------- Расчёты ---------- */
@@ -285,7 +296,7 @@ function checkOpening(){
 }
 $('openCancel').onclick = () => $('modal').classList.remove('show');
 $('openSave').onclick = () => {
-  const v = parseFloat($('openAmt').value);
+  const v = num($('openAmt').value);
   if (isNaN(v)) { $('openAmt').focus(); return; }
   data.open[openKey] = v;
   save(); $('modal').classList.remove('show'); render();
@@ -304,7 +315,7 @@ $('type').onclick = e => {
   renderChips();
 };
 $('save').onclick = () => {
-  const a = parseFloat($('amt').value);
+  const a = num($('amt').value);
   const c = $('cat').value.trim();
   if (!(a > 0)) { $('amt').focus(); return; }
   if (!c) { $('cat').focus(); return; }
@@ -372,7 +383,7 @@ $('eType').onclick = e => { const b = e.target.closest('button'); if (b) setEdit
 $('eCancel').onclick = closeEdit;
 $('editModal').onclick = e => { if (e.target === $('editModal')) closeEdit(); };
 $('eSave').onclick = () => {
-  const a = parseFloat($('eAmt').value), c = $('eCat').value.trim();
+  const a = num($('eAmt').value), c = $('eCat').value.trim();
   if (!(a > 0)) { $('eAmt').focus(); return; }
   if (!c) { $('eCat').focus(); return; }
   const t = data.tx.find(x => x.id === editId); if (!t) return closeEdit();
@@ -461,7 +472,7 @@ function renderDebts(){
     : '<div class="empty">Долгов нет. Добавьте первый выше.</div>';
 }
 $('dAdd').onclick = () => {
-  const n = $('dName').value.trim(), a = parseFloat($('dAmt').value);
+  const n = $('dName').value.trim(), a = num($('dAmt').value);
   if (!n) { $('dName').focus(); return; }
   if (!(a > 0)) { $('dAmt').focus(); return; }
   data.debts.push({ id: Date.now(), n, a });
@@ -481,7 +492,7 @@ $('dList').onclick = e => {
 $('deCancel').onclick = closeDebtEdit;
 $('deModal').onclick = e => { if (e.target === $('deModal')) closeDebtEdit(); };
 $('deSave').onclick = () => {
-  const n = $('deName').value.trim(), a = parseFloat($('deAmt').value);
+  const n = $('deName').value.trim(), a = num($('deAmt').value);
   if (!n) { $('deName').focus(); return; }
   if (!(a > 0)) { $('deAmt').focus(); return; }
   const d = data.debts.find(x => x.id === debtEditId); if (!d) return closeDebtEdit();
