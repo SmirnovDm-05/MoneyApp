@@ -79,6 +79,7 @@ nav button.on{color:var(--btn)}
    <div class="box"><small>Расходы</small><b class="exp" id="sExp"></b></div>
   </div>
   <div class="pbox"><small>Прибыль за месяц (доходы − расходы)</small><b id="sProf"></b></div>
+  <div class="pbox" id="dbox"><small>Долги</small><b class="exp" id="sDebt"></b></div>
   <div class="seg" id="type"><button class="e on" data-t="e">Расход</button><button class="i" data-t="i">Доход</button></div>
   <input id="amt" type="number" inputmode="decimal" placeholder="Сумма, ₽">
   <input id="cat" placeholder="Категория, например: кафе" autocomplete="off">
@@ -107,6 +108,17 @@ nav button.on{color:var(--btn)}
   <div id="hlist"></div>
  </section>
 
+  <section id="v-debt" class="hide">
+  <h1>Общий долг</h1>
+  <div class="bal" id="dTotal"></div>
+  <h2>Добавить долг</h2>
+  <input id="dName" placeholder="Кому должны, например: Сбербанк" autocomplete="off">
+  <input id="dAmt" type="number" inputmode="decimal" placeholder="Сумма, ₽">
+  <button class="main" id="dAdd">Добавить долг</button>
+  <h2>Мои долги</h2>
+  <div id="dList"></div>
+ </section>
+
  <section id="v-stat" class="hide">
   <h2 style="margin-top:0">По месяцам</h2>
   <div class="mrow h"><span>Месяц</span><span>Доход</span><span>Расход</span><span>Прибыль</span></div>
@@ -120,6 +132,7 @@ nav button.on{color:var(--btn)}
  <button class="on" data-v="home">Главная</button>
  <button data-v="hist">История</button>
  <button data-v="stat">Статистика</button>
+ <button data-v="debt">Долги</button>
 </nav>
 
 <div class="modal" id="modal"><div class="sheet">
@@ -142,8 +155,19 @@ nav button.on{color:var(--btn)}
  </div>
 </div></div>
 
+<div class="modal" id="deModal"><div class="sheet">
+ <h2 style="margin:0 0 12px">Редактировать долг</h2>
+ <input id="deName" placeholder="Кому должны" autocomplete="off">
+ <input id="deAmt" type="number" inputmode="decimal" placeholder="Сумма, ₽">
+ <div class="acts">
+  <button class="sec danger" id="deDel">Удалить</button>
+  <button class="sec" id="deCancel">Отмена</button>
+  <button class="main" id="deSave">Сохранить</button>
+ </div>
+</div></div>
+
 <div class="modal" id="cfModal"><div class="sheet">
- <h2 style="margin:0 0 14px">Удалить запись?</h2>
+ <h2 style="margin:0 0 14px" id="cfTitle">Удалить запись?</h2>
  <div class="acts">
   <button class="sec" id="cfNo">Отмена</button>
   <button class="main" id="cfYes" style="background:var(--exp);color:#fff">Удалить</button>
@@ -169,7 +193,7 @@ function setProf(id, v){
 }
 const esc = s => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
-let data = { tx: [], open: {} };
+let data = { tx: [], open: {}, debts: [] };
 let type = 'e';
 
 /* ---------- Хранилище: Telegram CloudStorage (синхронизация между устройствами), запасной вариант localStorage ----------
@@ -180,6 +204,7 @@ let savedChunks = 0;
 
 function parseData(raw){
   try { if (raw) { const d = JSON.parse(raw); if (d && d.tx && d.open) data = d; } } catch(e){}
+  if (!data.debts) data.debts = [];
 }
 function load(cb){
   if (!cloud) {
@@ -291,7 +316,7 @@ function itemHTML(t){
   <button class="del" data-id="${t.id}" aria-label="Удалить">×</button></div>`;
 }
 let cfCb = null;
-function askDelete(cb){ cfCb = cb; $('cfModal').classList.add('show'); }
+function askDelete(cb, title){ cfCb = cb; $('cfTitle').textContent = title || 'Удалить запись?'; $('cfModal').classList.add('show'); }
 $('cfNo').onclick = () => { cfCb = null; $('cfModal').classList.remove('show'); };
 $('cfYes').onclick = () => {
   const cb = cfCb; cfCb = null;
@@ -353,6 +378,9 @@ function renderHome(){
   $('sInc').textContent = fmt(s.i); $('sExp').textContent = fmt(s.e); setProf('sProf', s.i - s.e);
   const last = [...data.tx].sort((a,b) => b.d.localeCompare(a.d) || b.id - a.id).slice(0,5);
   $('recent').innerHTML = last.length ? last.map(itemHTML).join('') : '<div class="empty">Пока нет записей. Добавьте первую выше.</div>';
+  const dt = debtTotal();
+  $('dbox').style.display = dt ? '' : 'none';
+  $('sDebt').textContent = '−' + fmt(dt);
   renderChips();
 }
 
@@ -405,14 +433,58 @@ function renderStat(){
     : '<div class="empty">В этом месяце расходов пока нет</div>';
 }
 
+/* ---------- Долги ---------- */
+const debtTotal = () => data.debts.reduce((s, d) => s + d.a, 0);
+function renderDebts(){
+  const total = debtTotal();
+  const el = $('dTotal');
+  el.textContent = total ? '−' + fmt(total) : fmt(0);
+  el.className = 'bal' + (total ? ' exp' : '');
+  $('dList').innerHTML = data.debts.length
+    ? data.debts.map(d => `<div class="item" data-did="${d.id}"><div class="n">${esc(d.n)}</div><div class="a exp">−${fmt(d.a)}</div></div>`).join('')
+    : '<div class="empty">Долгов нет. Добавьте первый выше.</div>';
+}
+$('dAdd').onclick = () => {
+  const n = $('dName').value.trim(), a = parseFloat($('dAmt').value);
+  if (!n) { $('dName').focus(); return; }
+  if (!(a > 0)) { $('dAmt').focus(); return; }
+  data.debts.push({ id: Date.now(), n, a });
+  save();
+  $('dName').value = ''; $('dAmt').value = '';
+  if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
+  render();
+};
+let debtEditId = null;
+function closeDebtEdit(){ $('deModal').classList.remove('show'); debtEditId = null; }
+$('dList').onclick = e => {
+  const row = e.target.closest('.item'); if (!row) return;
+  const d = data.debts.find(x => x.id === +row.dataset.did); if (!d) return;
+  debtEditId = d.id; $('deName').value = d.n; $('deAmt').value = d.a;
+  $('deModal').classList.add('show');
+};
+$('deCancel').onclick = closeDebtEdit;
+$('deModal').onclick = e => { if (e.target === $('deModal')) closeDebtEdit(); };
+$('deSave').onclick = () => {
+  const n = $('deName').value.trim(), a = parseFloat($('deAmt').value);
+  if (!n) { $('deName').focus(); return; }
+  if (!(a > 0)) { $('deAmt').focus(); return; }
+  const d = data.debts.find(x => x.id === debtEditId); if (!d) return closeDebtEdit();
+  d.n = n; d.a = a;
+  save(); closeDebtEdit(); render();
+};
+$('deDel').onclick = () => {
+  const id = debtEditId;
+  askDelete(() => { data.debts = data.debts.filter(x => x.id !== id); save(); closeDebtEdit(); render(); }, 'Удалить долг?');
+};
+
 /* ---------- Навигация ---------- */
 $('nav').onclick = e => {
   const b = e.target.closest('button'); if (!b) return;
   [...$('nav').children].forEach(x => x.classList.toggle('on', x === b));
-  ['home','hist','stat'].forEach(v => $('v-'+v).classList.toggle('hide', v !== b.dataset.v));
+  ['home','hist','stat','debt'].forEach(v => $('v-'+v).classList.toggle('hide', v !== b.dataset.v));
   render();
 };
-function render(){ renderHome(); renderHist(); renderStat(); }
+function render(){ renderHome(); renderHist(); renderStat(); renderDebts(); }
 
 /* ---------- Старт ---------- */
 $('date').value = today();
