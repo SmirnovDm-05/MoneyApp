@@ -84,7 +84,7 @@ main{position:fixed;top:0;left:0;right:0;bottom:calc(var(--navh) + env(safe-area
 .del{border:0;background:none;color:var(--hint);font-size:20px;line-height:1;padding:8px 10px}
 .day{background:var(--page);color:var(--hint);font-size:13px;font-weight:500;padding:9px 16px;display:flex;justify-content:space-between}
 .empty{color:var(--hint);text-align:center;padding:24px 16px;font-size:15px}
-.mrow{display:grid;grid-template-columns:1.1fr 1fr 1fr 1fr;gap:6px;padding:13px 16px;font-size:14px;cursor:pointer}
+.mrow{display:grid;grid-template-columns:1.1fr 1fr 1fr 1fr;gap:6px;padding:13px 16px;font-size:14px}
 .mrow.h{color:var(--hint);font-size:12px;cursor:default;padding:11px 16px}
 .mrow small{display:block;color:var(--hint);font-size:11px}
 #months .mrow:not(:first-child){border-top:var(--rule)}
@@ -212,7 +212,7 @@ nav button.on span{display:inline}
    <div class="line"><span>Баланс с учётом долгов</span><b id="stNet"></b></div>
   </div>
   <div class="head">По месяцам</div>
-  <p class="hint">Нажмите на месяц, чтобы изменить баланс на начало месяца.</p>
+  <p class="hint">Остаток каждого месяца автоматически переходит в следующий.</p>
   <div class="group">
    <div class="mrow h"><span>Месяц</span><span>Доход</span><span>Расход</span><span>Прибыль</span></div>
    <div id="months"></div>
@@ -296,9 +296,9 @@ nav button.on span{display:inline}
 
 <div class="modal" id="modal"><div class="sheet">
  <h2 style="margin:0" id="mTitle"></h2>
- <p>Сколько денег было на 1-е число. Дальше баланс месяца считается от этой суммы.</p>
+ <p id="mText"></p>
  <input id="openAmt" type="text" inputmode="decimal" placeholder="Баланс, ₽">
- <div class="acts"><button class="sec hide" id="openCancel">Отмена</button><button class="main" id="openSave">Сохранить баланс</button></div>
+ <div class="acts"><button class="sec hide" id="openCancel">Отмена</button><button class="main" id="openSave">Сохранить</button></div>
 </div></div>
 
 <div class="modal" id="editModal"><div class="sheet">
@@ -409,6 +409,11 @@ function parseData(raw){
   if (!data.debts) data.debts = [];
   if (!data.trades) data.trades = [];
   if (!data.tflows) data.tflows = [];
+  // раньше баланс вводили каждый месяц; теперь он считается сам от самого первого введённого
+  if (!data.start) {
+    const ks = Object.keys(data.open || {}).sort();
+    if (ks.length) data.start = { k: ks[0], a: data.open[ks[0]] };
+  }
 }
 function load(cb){
   if (!cloud) {
@@ -467,10 +472,19 @@ function sums(list){
   return { i, e };
 }
 function monthTx(k){ return data.tx.filter(t => mkey(t.d) === k); }
+// Баланс на начало месяца k: стартовая сумма + все доходы − все расходы за прошлые месяцы
+function openingAt(k){
+  const st = data.start;
+  if (!st || k < st.k) return null;
+  let bal = st.a;
+  data.tx.forEach(t => { const m = mkey(t.d); if (m >= st.k && m < k) bal += t.t === 'i' ? t.a : -t.a; });
+  return bal;
+}
 function balanceAt(k){
-  if (data.open[k] == null) return null;
+  const o = openingAt(k);
+  if (o == null) return null;
   const s = sums(monthTx(k));
-  return data.open[k] + s.i - s.e;
+  return o + s.i - s.e;
 }
 function nextKey(k){
   let [y,m] = k.split('-').map(Number);
@@ -483,33 +497,28 @@ function prevKey(k){
   return y+'-'+pad(m);
 }
 
-/* ---------- Баланс на начало месяца ---------- */
-let openKey = null;
-function showOpening(k, canCancel){
-  openKey = k;
-  const [y, m] = k.split('-').map(Number);
-  $('mTitle').textContent = 'Баланс на начало: ' + MONTHS[m-1].toLowerCase() + ' ' + y;
-  const cur = data.open[k] != null ? data.open[k] : balanceAt(prevKey(k));
-  $('openAmt').value = cur != null ? cur : '';
+/* ---------- Стартовый баланс (вводится один раз) ---------- */
+function showStart(canCancel){
+  $('mTitle').textContent = 'Стартовый баланс';
+  if (data.start) {
+    const [y, m] = data.start.k.split('-').map(Number);
+    $('mText').textContent = 'Сколько денег было на 1-е число (' + MONTHS[m-1].toLowerCase() + ' ' + y + '). От этой суммы считается баланс всех месяцев.';
+  } else {
+    $('mText').textContent = 'Сколько денег у вас сейчас? Это нужно ввести один раз: дальше остаток каждого месяца переходит в следующий сам.';
+  }
+  $('openAmt').value = data.start ? data.start.a : '';
   $('openCancel').classList.toggle('hide', !canCancel);
   $('modal').classList.add('show');
 }
-function checkOpening(){
-  const k = mkey(today());
-  if (data.open[k] == null) showOpening(k, false);
-}
+function checkOpening(){ if (!data.start) showStart(false); }
 $('openCancel').onclick = () => $('modal').classList.remove('show');
 $('openSave').onclick = () => {
   const v = num($('openAmt').value);
   if (isNaN(v)) { $('openAmt').focus(); return; }
-  data.open[openKey] = v;
+  data.start = { k: data.start ? data.start.k : mkey(today()), a: v };
   save(); $('modal').classList.remove('show'); render();
 };
-$('editOpen').onclick = () => showOpening(mkey(today()), true);
-$('months').onclick = e => {
-  const r = e.target.closest('.mrow');
-  if (r && r.dataset.k) showOpening(r.dataset.k, true);
-};
+$('editOpen').onclick = () => showStart(true);
 
 /* ---------- Добавление записи ---------- */
 $('type').onclick = e => {
@@ -604,7 +613,7 @@ function renderHome(){
   $('mname').textContent = 'Баланс, ' + MONTHS[m-1].toLowerCase() + ' ' + y;
   const b = balanceAt(k);
   $('bal').textContent = b == null ? '—' : fmt(b);
-  $('editOpen').textContent = data.open[k] != null ? 'Баланс на 1-е число: ' + fmt(data.open[k]) + ' · изменить' : 'Указать баланс на начало месяца';
+  $('editOpen').textContent = data.start ? 'Стартовый баланс: ' + fmt(data.start.a) + ' · изменить' : 'Указать стартовый баланс';
   const s = sums(monthTx(k));
   $('sInc').textContent = fmt(s.i); $('sExp').textContent = fmt(s.e); setProf('sProf', s.i - s.e);
   const last = [...data.tx].sort((a,b) => b.d.localeCompare(a.d) || b.id - a.id).slice(0,5);
@@ -651,11 +660,11 @@ function renderStat(){
   const net = bl == null ? null : bl - dt;
   $('stNet').textContent = net == null ? '—' : (net < 0 ? '−' : '') + fmt(Math.abs(net));
   $('stNet').className = net != null && net < 0 ? 'exp' : '';
-  const keys = [...new Set([...data.tx.map(t => mkey(t.d)), ...Object.keys(data.open), mkey(today())])].sort().reverse();
+  const keys = [...new Set([...data.tx.map(t => mkey(t.d)), ...(data.start ? [data.start.k] : []), mkey(today())])].sort().reverse();
   $('months').innerHTML = keys.map(k => {
     const [y,m] = k.split('-').map(Number), s = sums(monthTx(k)), b = balanceAt(k);
     const p = s.i - s.e;
-    return `<div class="mrow" data-k="${k}" style="cursor:pointer"><span>${MONTHS[m-1].slice(0,3)} ${String(y).slice(2)}<small>остаток ${b == null ? '—' : fmt(b)}</small></span>
+    return `<div class="mrow" data-k="${k}"><span>${MONTHS[m-1].slice(0,3)} ${String(y).slice(2)}<small>остаток ${b == null ? '—' : fmt(b)}</small></span>
     <span class="inc">${fmt(s.i)}</span><span class="exp">${fmt(s.e)}</span><span class="${p < 0 ? 'exp' : p > 0 ? 'inc' : ''}">${p > 0 ? '+' : p < 0 ? '−' : ''}${fmt(Math.abs(p))}</span></div>`;
   }).join('');
   const [cy, cm] = chartMonth.split('-').map(Number);
