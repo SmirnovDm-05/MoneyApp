@@ -26,6 +26,8 @@ html[data-theme=dark]{color-scheme:dark;
  --btnbg:#FFD43B;--btnfg:#121212;--t-inc:#173628;--t-exp:#3A211F}
 html[data-view=debt]{--sec:#FF9F8F}
 html[data-view=trade]{--sec:#86E3B4}
+.pc{display:block;font-size:12px;font-weight:600;opacity:.85}
+.item .a{text-align:right}
 
 *{box-sizing:border-box;margin:0}
 html,body{height:100%;overflow:hidden;overscroll-behavior:none}
@@ -241,48 +243,58 @@ nav button.on span{display:inline}
  </section>
 
  <section id="v-trade" class="hide">
-  <div class="hero">
-   <div class="cap">Баланс торгового счёта</div>
-   <div class="bal" id="acBal"></div>
-   <div class="sub" id="acSub"></div>
+  <h1 class="title">Трейдинг</h1>
+  <div id="trSetup" class="hide">
+   <div class="group fields">
+    <input id="trStartAmt" type="text" inputmode="decimal" placeholder="Начальный баланс, ₽">
+   </div>
+   <button class="main" id="trStartSave">Установить баланс</button>
+   <button class="sec" id="trStartCancel" style="width:100%;margin-top:8px">Отмена</button>
   </div>
-  <div class="mnav"><button id="trPrev" aria-label="Предыдущий месяц">‹</button><span id="trMonth"></span><button id="trNext" aria-label="Следующий месяц">›</button></div>
-  <div class="hero small">
-   <div class="cap">Результат за месяц</div>
-   <div class="bal" id="trTotal"></div>
-  </div>
-  <div class="group">
-   <div class="line"><span>Сделок</span><b id="trCount"></b></div>
-   <div class="line"><span>Прибыльных</span><b id="trWin"></b></div>
-   <div class="line"><span>Лучшая</span><b id="trBest"></b></div>
-   <div class="line"><span>Худшая</span><b id="trWorst"></b></div>
-   <div class="line"><span>Результат за всё время</span><b id="trAll"></b></div>
-  </div>
-  <div class="head">Новая сделка</div>
-  <div class="seg" id="trType"><button class="i on" data-t="p">Прибыль</button><button class="e" data-t="l">Убыток</button></div>
-  <div class="group fields">
-   <input id="trAmt" type="text" inputmode="decimal" placeholder="Сумма, ₽">
-   <input id="trName" placeholder="Инструмент, например: BTC" autocomplete="off">
-   <div class="chips" id="trChips"></div>
-   <input id="trDate" type="date">
-  </div>
-  <button class="main" id="trAdd">Добавить сделку</button>
-  <div class="head">Сделки за месяц</div>
-  <div class="group" id="trList"></div>
+  <div id="trMain">
+   <div class="hero">
+    <div class="cap">Баланс торгового счёта</div>
+    <div class="bal" id="trBal"></div>
+    <div class="sub" id="trSub"></div>
+   </div>
+   <button class="sec" id="trEditStart" style="width:100%;margin-bottom:12px">Изменить начальный баланс</button>
 
-  <div class="head">Пополнение и вывод</div>
-  <div class="group">
-   <div class="line"><span>Пополнено за месяц</span><b class="inc" id="fIn"></b></div>
-   <div class="line"><span>Выведено за месяц</span><b class="exp" id="fOut"></b></div>
+   <div class="head">Просмотр</div>
+   <div class="mnav"><button id="trPrev" aria-label="Предыдущий месяц">‹</button><span id="trMonthLbl"></span><button id="trNext" aria-label="Следующий месяц">›</button></div>
+   <div class="group fields">
+    <label class="frow"><span>С</span><input type="date" id="trFrom"></label>
+    <label class="frow"><span>По</span><input type="date" id="trTo"></label>
+   </div>
+   <div class="chips" id="trChips">
+    <button class="chip" data-r="day">Сегодня</button>
+    <button class="chip" data-r="week">7 дней</button>
+    <button class="chip" data-r="month">Этот месяц</button>
+    <button class="chip" data-r="all">Всё время</button>
+   </div>
+   <div class="hero small">
+    <div class="cap">Изменение за период</div>
+    <div class="bal" id="trPct"></div>
+    <div class="sub" id="trPctSub"></div>
+   </div>
+   <div class="group">
+    <div class="line"><span>Операций</span><b id="trCnt"></b></div>
+    <div class="line"><span>Прибыльных</span><b id="trWin"></b></div>
+    <div class="line"><span>Выведено</span><b class="exp" id="trWd"></b></div>
+    <div class="line"><span>Баланс на конец периода</span><b id="trEnd"></b></div>
+   </div>
+
+   <div class="head">Новая операция</div>
+   <div class="seg" id="trType"><button class="i on" data-t="p">Прибыль</button><button class="e" data-t="l">Убыток</button><button data-t="w">Вывод</button></div>
+   <div class="group fields">
+    <input id="trAmt" type="text" inputmode="decimal" placeholder="Сумма, ₽">
+    <input id="trDate" type="date">
+    <div class="line"><span>Изменение баланса</span><b id="trPrev2">—</b></div>
+   </div>
+   <button class="main" id="trAdd">Добавить</button>
+
+   <div class="head">Операции за период</div>
+   <div id="trList"></div>
   </div>
-  <div class="seg" id="fType"><button class="i on" data-t="d">Пополнение</button><button class="e" data-t="w">Вывод</button></div>
-  <div class="group fields">
-   <input id="fAmt" type="text" inputmode="decimal" placeholder="Сумма, ₽">
-   <input id="fDate" type="date">
-  </div>
-  <button class="main" id="fAdd">Добавить операцию</button>
-  <div class="head">Операции за месяц</div>
-  <div class="group" id="fList"></div>
  </section>
 </main>
 
@@ -325,28 +337,15 @@ nav button.on span{display:inline}
  </div>
 </div></div>
 
-<div class="modal" id="teModal"><div class="sheet">
- <h2 style="margin:0 0 12px">Редактировать сделку</h2>
- <div class="seg" id="teType"><button class="i" data-t="p">Прибыль</button><button class="e" data-t="l">Убыток</button></div>
- <input id="teAmt" type="text" inputmode="decimal" placeholder="Сумма, ₽">
- <input id="teName" placeholder="Инструмент" autocomplete="off">
- <input id="teDate" type="date">
- <div class="acts">
-  <button class="sec danger" id="teDel">Удалить</button>
-  <button class="sec" id="teCancel">Отмена</button>
-  <button class="main" id="teSave">Сохранить</button>
- </div>
-</div></div>
-
-<div class="modal" id="feModal"><div class="sheet">
+<div class="modal" id="tpModal"><div class="sheet">
  <h2 style="margin:0 0 12px">Редактировать операцию</h2>
- <div class="seg" id="feType"><button class="i" data-t="d">Пополнение</button><button class="e" data-t="w">Вывод</button></div>
- <input id="feAmt" type="text" inputmode="decimal" placeholder="Сумма, ₽">
- <input id="feDate" type="date">
+ <div class="seg" id="tpType"><button class="i" data-t="p">Прибыль</button><button class="e" data-t="l">Убыток</button><button data-t="w">Вывод</button></div>
+ <input id="tpAmt" type="text" inputmode="decimal" placeholder="Сумма, ₽">
+ <input id="tpDate" type="date">
  <div class="acts">
-  <button class="sec danger" id="feDel">Удалить</button>
-  <button class="sec" id="feCancel">Отмена</button>
-  <button class="main" id="feSave">Сохранить</button>
+  <button class="sec danger" id="tpDel">Удалить</button>
+  <button class="sec" id="tpCancel">Отмена</button>
+  <button class="main" id="tpSave">Сохранить</button>
  </div>
 </div></div>
 
@@ -395,7 +394,7 @@ const av = name => {
 };
 const esc = s => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
-let data = { tx: [], open: {}, debts: [], trades: [], tflows: [] };
+let data = { tx: [], open: {}, debts: [], trades: [], tflows: [], tr: { start: null, ops: [] } };
 let type = 'e';
 
 /* ---------- Хранилище: Telegram CloudStorage (синхронизация между устройствами), запасной вариант localStorage ----------
@@ -409,6 +408,7 @@ function parseData(raw){
   if (!data.debts) data.debts = [];
   if (!data.trades) data.trades = [];
   if (!data.tflows) data.tflows = [];
+  if (!data.tr || !Array.isArray(data.tr.ops)) data.tr = { start: null, ops: [] };
   // раньше баланс вводили каждый месяц; теперь он считается сам от самого первого введённого
   if (!data.start) {
     const ks = Object.keys(data.open || {}).sort();
@@ -751,135 +751,149 @@ $('deDel').onclick = () => {
   askDelete(() => { data.debts = data.debts.filter(x => x.id !== id); save(); closeDebtEdit(); render(); }, 'Удалить долг?');
 };
 
-/* ---------- Трейдинг (отдельный журнал, на баланс месяца не влияет) ---------- */
-let trMonth = mkey(today()), trType = 'p', trEditId = null, trEditType = 'p';
+/* ---------- Трейдинг: баланс счёта, операции (прибыль/убыток/вывод) и изменение в % ---------- */
 const sgn = v => (v > 0 ? '+' : v < 0 ? '−' : '') + fmt(Math.abs(v));
 const sgnCls = v => v < 0 ? 'exp' : v > 0 ? 'inc' : '';
+const pct = v => v == null ? '—' : (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toLocaleString('ru-RU', { maximumFractionDigits: 2 }) + '%';
 function setSeg(box, t){ [...box.children].forEach(b => b.classList.toggle('on', b.dataset.t === t)); }
-function renderTrade(){
-  const [y, m] = trMonth.split('-').map(Number);
-  $('trMonth').textContent = MONTHS[m-1] + ' ' + y;
-  const list = data.trades.filter(t => mkey(t.d) === trMonth).sort((a, b) => b.d.localeCompare(a.d) || b.id - a.id);
-  const total = list.reduce((s, t) => s + t.r, 0);
-  $('trTotal').textContent = sgn(total);
-  $('trTotal').className = 'bal ' + sgnCls(total);
-  $('trCount').textContent = list.length;
-  const wins = list.filter(t => t.r > 0).length;
-  $('trWin').textContent = list.length ? wins + ' из ' + list.length + ' (' + Math.round(wins / list.length * 100) + '%)' : '—';
-  const best = list.length ? Math.max(...list.map(t => t.r)) : null;
-  const worst = list.length ? Math.min(...list.map(t => t.r)) : null;
-  $('trBest').textContent = best == null ? '—' : sgn(best);
-  $('trBest').className = best == null ? '' : sgnCls(best);
-  $('trWorst').textContent = worst == null ? '—' : sgn(worst);
-  $('trWorst').className = worst == null ? '' : sgnCls(worst);
-  const all = data.trades.reduce((s, t) => s + t.r, 0);
-  $('trAll').textContent = sgn(all);
-  $('trAll').className = sgnCls(all);
-  const cnt = {};
-  data.trades.forEach(t => cnt[t.n] = (cnt[t.n] || 0) + 1);
-  $('trChips').innerHTML = Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a]).slice(0, 8).map(n => `<button class="chip">${esc(n)}</button>`).join('');
-  $('trList').innerHTML = list.length
-    ? list.map(t => `<div class="item" data-tid="${t.id}">${av(t.n)}<div class="n">${esc(t.n)}<span>${t.d.split('-').reverse().join('.')}</span></div>
-        <div class="a ${sgnCls(t.r)}">${sgn(t.r)}</div><button class="del" data-tid="${t.id}" aria-label="Удалить">×</button></div>`).join('')
-    : '<div class="empty">В этом месяце сделок нет. Добавьте первую выше.</div>';
+let trMonth = mkey(today()), trKind = 'p', trEditId = null, trEditKind = 'p', trSetupOpen = false;
 
-  // Счёт: пополнения − выводы + результат всех сделок
-  const dep = data.tflows.filter(f => f.k === 'd').reduce((s, f) => s + f.a, 0);
-  const wd = data.tflows.filter(f => f.k === 'w').reduce((s, f) => s + f.a, 0);
-  const acc = dep - wd + all;
-  $('acBal').textContent = (acc < 0 ? '−' : '') + fmt(Math.abs(acc));
-  $('acBal').className = 'bal' + (acc < 0 ? ' exp' : '');
-  $('acSub').textContent = 'Пополнено: ' + fmt(dep) + ' · Выведено: ' + fmt(wd) + ' · Результат сделок: ' + sgn(all);
-  const fl = data.tflows.filter(f => mkey(f.d) === trMonth).sort((a, b) => b.d.localeCompare(a.d) || b.id - a.id);
-  $('fIn').textContent = fmt(fl.filter(f => f.k === 'd').reduce((s, f) => s + f.a, 0));
-  $('fOut').textContent = fmt(fl.filter(f => f.k === 'w').reduce((s, f) => s + f.a, 0));
-  $('fList').innerHTML = fl.length
-    ? fl.map(f => `<div class="item" data-fid="${f.id}"><i class="av" style="background:var(--${f.k === 'd' ? 'inc' : 'exp'})">${f.k === 'd' ? '+' : '−'}</i><div class="n">${f.k === 'd' ? 'Пополнение' : 'Вывод'}<span>${f.d.split('-').reverse().join('.')}</span></div>
-        <div class="a ${f.k === 'd' ? 'inc' : 'exp'}">${f.k === 'd' ? '+' : '−'}${fmt(f.a)}</div><button class="del" data-fid="${f.id}" aria-label="Удалить">×</button></div>`).join('')
-    : '<div class="empty">В этом месяце пополнений и выводов нет</div>';
+// Операции по порядку: у каждой считаем баланс до/после и процент к балансу до неё
+function trCalc(){
+  const t = data.tr, out = [];
+  if (!t.start) return out;
+  let b = t.start.a;
+  [...t.ops].sort((x, y) => x.d.localeCompare(y.d) || x.id - y.id).forEach(o => {
+    const r = o.k === 'p' ? o.a : o.k === 'l' ? -o.a : 0;
+    const w = o.k === 'w' ? o.a : 0;
+    const before = b;
+    b = b + r - w;
+    out.push({ o, before, after: b, r, w, p: (o.k !== 'w' && before > 0) ? r / before * 100 : null });
+  });
+  return out;
 }
-$('trPrev').onclick = () => { trMonth = prevKey(trMonth); renderTrade(); };
-$('trNext').onclick = () => { trMonth = nextKey(trMonth); renderTrade(); };
-$('trType').onclick = e => { const b = e.target.closest('button'); if (b) { trType = b.dataset.t; setSeg($('trType'), trType); } };
-$('trChips').onclick = e => { if (e.target.classList.contains('chip')) $('trName').value = e.target.textContent; };
-$('trAdd').onclick = () => {
-  const a = num($('trAmt').value), n = $('trName').value.trim();
-  if (!(a > 0)) { $('trAmt').focus(); return; }
-  if (!n) { $('trName').focus(); return; }
+// итоговый процент периода: проценты операций перемножаются (вывод средств на него не влияет)
+function trCompound(list){
+  let f = 1, any = false;
+  list.forEach(x => { if (x.p != null) { f *= 1 + x.p / 100; any = true; } });
+  return any ? (f - 1) * 100 : (list.length ? 0 : null);
+}
+function trSetRange(f, t){ $('trFrom').value = f; $('trTo').value = t; }
+function trMonthRange(k){
+  const [y, m] = k.split('-').map(Number);
+  trSetRange(iso(new Date(y, m - 1, 1)), iso(new Date(y, m, 0)));
+}
+function renderTrade(){
+  const t = data.tr, setup = !t.start || trSetupOpen;
+  $('trSetup').classList.toggle('hide', !setup);
+  $('trMain').classList.toggle('hide', setup);
+  if (setup) return;
+  const calc = trCalc();
+  const last = calc.length ? calc[calc.length - 1].after : t.start.a;
+  const allR = calc.reduce((s, x) => s + x.r, 0), allW = calc.reduce((s, x) => s + x.w, 0);
+  $('trBal').textContent = (last < 0 ? '−' : '') + fmt(Math.abs(last));
+  $('trBal').className = 'bal' + (last < 0 ? ' exp' : '');
+  $('trSub').textContent = 'Старт: ' + fmt(t.start.a) + ' · Всего: ' + sgn(allR) + ' (' + pct(trCompound(calc)) + ')';
+  const [y, m] = trMonth.split('-').map(Number);
+  $('trMonthLbl').textContent = MONTHS[m - 1] + ' ' + y;
+
+  const f = $('trFrom').value, to = $('trTo').value;
+  const list = calc.filter(x => (!f || x.o.d >= f) && (!to || x.o.d <= to));
+  const p = trCompound(list), r = list.reduce((s, x) => s + x.r, 0), w = list.reduce((s, x) => s + x.w, 0);
+  $('trPct').textContent = pct(p);
+  $('trPct').className = 'bal ' + sgnCls(p || 0);
+  $('trPctSub').textContent = list.length ? sgn(r) : 'Нет операций';
+  const trades = list.filter(x => x.o.k !== 'w');
+  $('trCnt').textContent = list.length;
+  const wins = trades.filter(x => x.r > 0).length;
+  $('trWin').textContent = trades.length ? wins + ' из ' + trades.length + ' (' + Math.round(wins / trades.length * 100) + '%)' : '—';
+  $('trWd').textContent = fmt(w);
+  const endBal = list.length ? list[list.length - 1].after : (calc.filter(x => x.o.d < (f || '')).pop() || { after: t.start.a }).after;
+  $('trEnd').textContent = fmt(endBal);
+
+  if (!list.length) { $('trList').innerHTML = '<div class="empty">За этот период операций нет</div>'; }
+  else {
+    const days = [];
+    [...list].reverse().forEach(x => { const g = days.find(d => d.d === x.o.d); g ? g.items.push(x) : days.push({ d: x.o.d, items: [x] }); });
+    $('trList').innerHTML = days.map(g => {
+      const dp = trCompound(g.items.filter(x => x.o.k !== 'w').reverse()), dr = g.items.reduce((s, x) => s + x.r, 0);
+      const head = `<div class="day"><span>${g.d.split('-').reverse().join('.')}</span><span>${dp == null ? '' : sgn(dr) + ' · ' + pct(dp)}</span></div>`;
+      const rows = g.items.map(x => {
+        const k = x.o.k, cls = k === 'p' ? 'inc' : 'exp', sym = k === 'p' ? '+' : '−';
+        const name = k === 'p' ? 'Прибыль' : k === 'l' ? 'Убыток' : 'Вывод';
+        const amt = k === 'w' ? '−' + fmt(x.w) : sgn(x.r);
+        return `<div class="item" data-oid="${x.o.id}"><i class="av" style="background:var(--${cls})">${sym}</i>
+          <div class="n">${name}<span>Баланс после: ${fmt(x.after)}</span></div>
+          <div class="a ${cls}">${amt}${k === 'w' ? '' : '<span class="pc">' + pct(x.p) + '</span>'}</div><button class="del" data-oid="${x.o.id}" aria-label="Удалить">×</button></div>`;
+      }).join('');
+      return head + '<div class="group">' + rows + '</div>';
+    }).join('');
+  }
+  trPreview();
+}
+function trPreview(){
+  const a = num($('trAmt').value), calc = trCalc();
   const d = $('trDate').value || today();
-  data.trades.push({ id: Date.now(), n, r: trType === 'p' ? a : -a, d });
-  trMonth = mkey(d); // показываем месяц, в который попала сделка
-  save();
-  $('trAmt').value = ''; $('trName').value = ''; $('trDate').value = today();
-  if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-  render();
+  const before = calc.filter(x => x.o.d <= d).pop();
+  const b = before ? before.after : data.tr.start ? data.tr.start.a : 0;
+  let txt = '—';
+  if (a > 0) {
+    if (trKind === 'w') txt = 'Баланс: ' + fmt(b - a);
+    else if (b > 0) txt = pct((trKind === 'p' ? a : -a) / b * 100) + ' к ' + fmt(b);
+  }
+  $('trPrev2').textContent = txt;
+}
+$('trAmt').oninput = trPreview; $('trDate').onchange = trPreview;
+$('trStartSave').onclick = () => {
+  const v = num($('trStartAmt').value);
+  if (!(v > 0)) { $('trStartAmt').focus(); return; }
+  data.tr.start = { a: v }; trSetupOpen = false; $('trStartAmt').value = '';
+  save(); render();
 };
-function deleteTrade(id){ data.trades = data.trades.filter(t => t.id !== id); save(); render(); }
-function closeTrEdit(){ $('teModal').classList.remove('show'); trEditId = null; }
+$('trStartCancel').onclick = () => { trSetupOpen = false; render(); };
+$('trEditStart').onclick = () => { trSetupOpen = true; $('trStartAmt').value = data.tr.start ? String(data.tr.start.a).replace('.', ',') : ''; render(); };
+$('trPrev').onclick = () => { trMonth = prevKey(trMonth); trMonthRange(trMonth); renderTrade(); };
+$('trNext').onclick = () => { trMonth = nextKey(trMonth); trMonthRange(trMonth); renderTrade(); };
+$('trFrom').onchange = $('trTo').onchange = renderTrade;
+$('trChips').onclick = e => {
+  const r = e.target.dataset.r; if (!r) return;
+  const now = new Date();
+  if (r === 'day') trSetRange(iso(now), iso(now));
+  if (r === 'week') { const d = new Date(now); d.setDate(d.getDate() - 6); trSetRange(iso(d), iso(now)); }
+  if (r === 'month') { trMonth = mkey(today()); trMonthRange(trMonth); }
+  if (r === 'all') trSetRange('', '');
+  renderTrade();
+};
+$('trType').onclick = e => { const b = e.target.closest('button'); if (b) { trKind = b.dataset.t; setSeg($('trType'), trKind); trPreview(); } };
+$('trAdd').onclick = () => {
+  const a = num($('trAmt').value);
+  if (!(a > 0)) { $('trAmt').focus(); return; }
+  const d = $('trDate').value || today();
+  data.tr.ops.push({ id: Date.now(), k: trKind, a, d });
+  $('trAmt').value = ''; $('trDate').value = today();
+  if (d < $('trFrom').value || d > ($('trTo').value || '9999')) { trMonth = mkey(d); trMonthRange(trMonth); }
+  save(); render();
+};
+function deleteTrOp(id){ data.tr.ops = data.tr.ops.filter(o => o.id !== id); save(); render(); }
+function closeTrEdit(){ $('tpModal').classList.remove('show'); trEditId = null; }
 $('trList').onclick = e => {
   const del = e.target.closest('.del');
-  if (del) { const id = +del.dataset.tid; askDelete(() => deleteTrade(id), 'Удалить сделку?'); return; }
+  if (del) { const id = +del.dataset.oid; askDelete(() => deleteTrOp(id), 'Удалить операцию?'); return; }
   const row = e.target.closest('.item'); if (!row) return;
-  const t = data.trades.find(x => x.id === +row.dataset.tid); if (!t) return;
-  trEditId = t.id; trEditType = t.r < 0 ? 'l' : 'p'; setSeg($('teType'), trEditType);
-  $('teAmt').value = Math.abs(t.r); $('teName').value = t.n; $('teDate').value = t.d;
-  $('teModal').classList.add('show');
+  const o = data.tr.ops.find(x => x.id === +row.dataset.oid); if (!o) return;
+  trEditId = o.id; trEditKind = o.k; setSeg($('tpType'), o.k);
+  $('tpAmt').value = String(o.a).replace('.', ','); $('tpDate').value = o.d;
+  $('tpModal').classList.add('show');
 };
-$('teType').onclick = e => { const b = e.target.closest('button'); if (b) { trEditType = b.dataset.t; setSeg($('teType'), trEditType); } };
-$('teCancel').onclick = closeTrEdit;
-$('teModal').onclick = e => { if (e.target === $('teModal')) closeTrEdit(); };
-$('teSave').onclick = () => {
-  const a = num($('teAmt').value), n = $('teName').value.trim();
-  if (!(a > 0)) { $('teAmt').focus(); return; }
-  if (!n) { $('teName').focus(); return; }
-  const t = data.trades.find(x => x.id === trEditId); if (!t) return closeTrEdit();
-  t.n = n; t.r = trEditType === 'p' ? a : -a; t.d = $('teDate').value || t.d;
+$('tpType').onclick = e => { const b = e.target.closest('button'); if (b) { trEditKind = b.dataset.t; setSeg($('tpType'), trEditKind); } };
+$('tpCancel').onclick = closeTrEdit;
+$('tpSave').onclick = () => {
+  const a = num($('tpAmt').value); if (!(a > 0)) { $('tpAmt').focus(); return; }
+  const o = data.tr.ops.find(x => x.id === trEditId); if (!o) return closeTrEdit();
+  o.k = trEditKind; o.a = a; o.d = $('tpDate').value || o.d;
   save(); closeTrEdit(); render();
 };
-$('teDel').onclick = () => {
-  const id = trEditId;
-  askDelete(() => { deleteTrade(id); closeTrEdit(); }, 'Удалить сделку?');
-};
-
-/* ---------- Пополнение и вывод со счёта ---------- */
-let fKind = 'd', fEditId = null, fEditKind = 'd';
-$('fType').onclick = e => { const b = e.target.closest('button'); if (b) { fKind = b.dataset.t; setSeg($('fType'), fKind); } };
-$('fAdd').onclick = () => {
-  const a = num($('fAmt').value);
-  if (!(a > 0)) { $('fAmt').focus(); return; }
-  const d = $('fDate').value || today();
-  data.tflows.push({ id: Date.now(), k: fKind, a, d });
-  trMonth = mkey(d);
-  save();
-  $('fAmt').value = ''; $('fDate').value = today();
-  if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success');
-  render();
-};
-function deleteFlow(id){ data.tflows = data.tflows.filter(f => f.id !== id); save(); render(); }
-function closeFlowEdit(){ $('feModal').classList.remove('show'); fEditId = null; }
-$('fList').onclick = e => {
-  const del = e.target.closest('.del');
-  if (del) { const id = +del.dataset.fid; askDelete(() => deleteFlow(id), 'Удалить операцию?'); return; }
-  const row = e.target.closest('.item'); if (!row) return;
-  const f = data.tflows.find(x => x.id === +row.dataset.fid); if (!f) return;
-  fEditId = f.id; fEditKind = f.k; setSeg($('feType'), fEditKind);
-  $('feAmt').value = f.a; $('feDate').value = f.d;
-  $('feModal').classList.add('show');
-};
-$('feType').onclick = e => { const b = e.target.closest('button'); if (b) { fEditKind = b.dataset.t; setSeg($('feType'), fEditKind); } };
-$('feCancel').onclick = closeFlowEdit;
-$('feModal').onclick = e => { if (e.target === $('feModal')) closeFlowEdit(); };
-$('feSave').onclick = () => {
-  const a = num($('feAmt').value);
-  if (!(a > 0)) { $('feAmt').focus(); return; }
-  const f = data.tflows.find(x => x.id === fEditId); if (!f) return closeFlowEdit();
-  f.k = fEditKind; f.a = a; f.d = $('feDate').value || f.d;
-  save(); closeFlowEdit(); render();
-};
-$('feDel').onclick = () => {
-  const id = fEditId;
-  askDelete(() => { deleteFlow(id); closeFlowEdit(); }, 'Удалить операцию?');
-};
+$('tpDel').onclick = () => { const id = trEditId; askDelete(() => { deleteTrOp(id); closeTrEdit(); }, 'Удалить операцию?'); };
 
 /* ---------- Навигация ---------- */
 const VIEWS = ['home', 'hist', 'stat', 'debt', 'trade'];
@@ -932,10 +946,10 @@ function render(){ renderHome(); renderHist(); renderStat(); renderDebts(); rend
 
 /* ---------- Старт ---------- */
 $('date').value = today();
-$('trDate').value = today();
-$('fDate').value = today();
 $('from').value = iso(new Date(new Date().getFullYear(), new Date().getMonth(), 1));
 $('to').value = today();
+$('trDate').value = today();
+trMonthRange(trMonth);
 load(() => { render(); checkOpening(); });
 // Подтягиваем изменения, сделанные с другого устройства, когда приложение снова открывают
 document.addEventListener('visibilitychange', () => {
