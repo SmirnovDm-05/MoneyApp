@@ -245,6 +245,7 @@ nav button.on span{display:inline}
  <section id="v-trade" class="hide">
   <h1 class="title">Трейдинг</h1>
   <div id="trSetup" class="hide">
+   <p class="hint" style="color:var(--hint);margin:0 4px 12px">Введите текущий баланс торгового счёта — с него начнётся учёт. Дальше баланс запрашивается раз в день при первом входе во вкладку, а разница записывается как прибыль или убыток.</p>
    <div class="group fields">
     <input id="trStartAmt" type="text" inputmode="decimal" placeholder="Начальный баланс, ₽">
    </div>
@@ -257,6 +258,7 @@ nav button.on span{display:inline}
     <div class="bal" id="trBal"></div>
     <div class="sub" id="trSub"></div>
    </div>
+   <button class="main" id="trAsk" style="margin-bottom:8px">Ввести баланс</button>
    <button class="sec" id="trEditStart" style="width:100%;margin-bottom:12px">Изменить начальный баланс</button>
 
    <div class="head">Просмотр</div>
@@ -283,14 +285,13 @@ nav button.on span{display:inline}
     <div class="line"><span>Баланс на конец периода</span><b id="trEnd"></b></div>
    </div>
 
-   <div class="head">Новая операция</div>
-   <div class="seg" id="trType"><button class="i on" data-t="p">Прибыль</button><button class="e" data-t="l">Убыток</button><button data-t="w">Вывод</button></div>
+   <div class="head">Вывод средств</div>
    <div class="group fields">
     <input id="trAmt" type="text" inputmode="decimal" placeholder="Сумма, ₽">
     <input id="trDate" type="date">
-    <div class="line"><span>Изменение баланса</span><b id="trPrev2">—</b></div>
+    <div class="line"><span>Баланс после вывода</span><b id="trPrev2">—</b></div>
    </div>
-   <button class="main" id="trAdd">Добавить</button>
+   <button class="main" id="trAdd">Записать вывод</button>
 
    <div class="head">Операции за период</div>
    <div id="trList"></div>
@@ -346,6 +347,17 @@ nav button.on span{display:inline}
   <button class="sec danger" id="tpDel">Удалить</button>
   <button class="sec" id="tpCancel">Отмена</button>
   <button class="main" id="tpSave">Сохранить</button>
+ </div>
+</div></div>
+
+<div class="modal" id="tbModal"><div class="sheet">
+ <h2 style="margin:0 0 4px">Баланс на сегодня</h2>
+ <p id="tbHint"></p>
+ <input id="tbAmt" type="text" inputmode="decimal" placeholder="Текущий баланс, ₽">
+ <p id="tbDiff" style="font-weight:700;color:var(--text)"></p>
+ <div class="acts">
+  <button class="sec" id="tbLater">Позже</button>
+  <button class="main" id="tbSave">Сохранить</button>
  </div>
 </div></div>
 
@@ -756,7 +768,7 @@ const sgn = v => (v > 0 ? '+' : v < 0 ? '−' : '') + fmt(Math.abs(v));
 const sgnCls = v => v < 0 ? 'exp' : v > 0 ? 'inc' : '';
 const pct = v => v == null ? '—' : (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toLocaleString('ru-RU', { maximumFractionDigits: 2 }) + '%';
 function setSeg(box, t){ [...box.children].forEach(b => b.classList.toggle('on', b.dataset.t === t)); }
-let trMonth = mkey(today()), trKind = 'p', trEditId = null, trEditKind = 'p', trSetupOpen = false;
+let trMonth = mkey(today()), trKind = 'w', trEditId = null, trEditKind = 'p', trSetupOpen = false;
 
 // Операции по порядку: у каждой считаем баланс до/после и процент к балансу до неё
 function trCalc(){
@@ -836,18 +848,13 @@ function trPreview(){
   const d = $('trDate').value || today();
   const before = calc.filter(x => x.o.d <= d).pop();
   const b = before ? before.after : data.tr.start ? data.tr.start.a : 0;
-  let txt = '—';
-  if (a > 0) {
-    if (trKind === 'w') txt = 'Баланс: ' + fmt(b - a);
-    else if (b > 0) txt = pct((trKind === 'p' ? a : -a) / b * 100) + ' к ' + fmt(b);
-  }
-  $('trPrev2').textContent = txt;
+  $('trPrev2').textContent = a > 0 ? fmt(b - a) : '—';
 }
 $('trAmt').oninput = trPreview; $('trDate').onchange = trPreview;
 $('trStartSave').onclick = () => {
   const v = num($('trStartAmt').value);
   if (!(v > 0)) { $('trStartAmt').focus(); return; }
-  data.tr.start = { a: v }; trSetupOpen = false; $('trStartAmt').value = '';
+  data.tr.start = { a: v }; data.tr.asked = today(); trSetupOpen = false; $('trStartAmt').value = '';
   save(); render();
 };
 $('trStartCancel').onclick = () => { trSetupOpen = false; render(); };
@@ -864,16 +871,42 @@ $('trChips').onclick = e => {
   if (r === 'all') trSetRange('', '');
   renderTrade();
 };
-$('trType').onclick = e => { const b = e.target.closest('button'); if (b) { trKind = b.dataset.t; setSeg($('trType'), trKind); trPreview(); } };
 $('trAdd').onclick = () => {
   const a = num($('trAmt').value);
   if (!(a > 0)) { $('trAmt').focus(); return; }
   const d = $('trDate').value || today();
-  data.tr.ops.push({ id: Date.now(), k: trKind, a, d });
+  data.tr.ops.push({ id: Date.now(), k: 'w', a, d });
   $('trAmt').value = ''; $('trDate').value = today();
   if (d < $('trFrom').value || d > ($('trTo').value || '9999')) { trMonth = mkey(d); trMonthRange(trMonth); }
   save(); render();
 };
+// Ежедневный запрос баланса: разница с расчётным балансом записывается как прибыль или убыток
+function trLast(){ const c = trCalc(); return c.length ? c[c.length - 1].after : (data.tr.start ? data.tr.start.a : 0); }
+function trAskBalance(){
+  if (!data.tr.start) return;
+  $('tbHint').textContent = 'Прошлый баланс: ' + fmt(trLast()) + '. Разница запишется как прибыль или убыток. Если выводили деньги, сначала запишите вывод.';
+  $('tbAmt').value = ''; $('tbDiff').textContent = '';
+  $('tbModal').classList.add('show');
+}
+function tbUpdate(){
+  const v = num($('tbAmt').value), last = trLast();
+  if (!(v >= 0)) { $('tbDiff').textContent = ''; return; }
+  const d = v - last;
+  $('tbDiff').textContent = d === 0 ? 'Без изменений' : (d > 0 ? 'Прибыль ' : 'Убыток ') + sgn(d) + (last > 0 ? ' (' + pct(d / last * 100) + ')' : '');
+}
+$('tbAmt').oninput = tbUpdate;
+$('tbLater').onclick = () => $('tbModal').classList.remove('show');
+$('tbSave').onclick = () => {
+  const v = num($('tbAmt').value);
+  if (!(v >= 0)) { $('tbAmt').focus(); return; }
+  const d = v - trLast();
+  if (Math.abs(d) > 0.004) data.tr.ops.push({ id: Date.now(), k: d > 0 ? 'p' : 'l', a: Math.round(Math.abs(d) * 100) / 100, d: today(), auto: true });
+  data.tr.asked = today();
+  $('tbModal').classList.remove('show');
+  trMonth = mkey(today()); trMonthRange(trMonth);
+  save(); render();
+};
+$('trAsk').onclick = trAskBalance;
 function deleteTrOp(id){ data.tr.ops = data.tr.ops.filter(o => o.id !== id); save(); render(); }
 function closeTrEdit(){ $('tpModal').classList.remove('show'); trEditId = null; }
 $('trList').onclick = e => {
@@ -904,6 +937,7 @@ function goTo(v, dir){
   [...$('nav').children].forEach(x => x.classList.toggle('on', x.dataset.v === v));
   VIEWS.forEach(n => $('v-' + n).classList.toggle('hide', n !== v));
   render();
+  if (v === 'trade' && data.tr.start && data.tr.asked !== today()) trAskBalance();
   const el = $('v-' + v);
   el.classList.remove('inL', 'inR');
   if (dir) { void el.offsetWidth; el.classList.add(dir > 0 ? 'inR' : 'inL'); }
